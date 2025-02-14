@@ -2,69 +2,64 @@ using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
+[RequireComponent(typeof(Detector))]
 
 public class AlarmSystem : MonoBehaviour
 {
     [SerializeField, Range(0f, 1f)] private float _speedGrowVolume = 1f;
-    [SerializeField] float _timeOfWite = 1f;
 
     private AudioSource _audioSource;
+    private Detector _detector;
+    private Coroutine _coroutine;
     private float _minVolume;
-    private bool _isRogueItHome;
-    private bool _isAlarmOff;
     private float _maxVolume;
+    private bool _isAlarm;
 
     private void Awake()
     {
+        _detector = GetComponent<Detector>();
         _audioSource = GetComponent<AudioSource>();
-        _isAlarmOff = true;
         _minVolume = 0f;
         _maxVolume = 1f;
         _audioSource.volume = _minVolume;
+        _detector.RogueChangedState += ChangeAlarmState;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnDisable() =>
+        _detector.RogueChangedState -= ChangeAlarmState;
+
+    private void ChangeAlarmState(bool isAlarm)
     {
-        _isRogueItHome = true;
 
-        if (collision.gameObject.TryGetComponent<Rogue>(out _) && _isAlarmOff)
-            StartCoroutine(TurnOnAlarm());
-    }
+        if (_coroutine != null)
+            StopCoroutine(_coroutine);
 
-    private void OnCollisionExit(Collision collision)
-    {
-        if (collision.gameObject.TryGetComponent<Rogue>(out _))
-            _isRogueItHome = false;
-    }
-
-    private IEnumerator TurnOnAlarm()
-    {
-        _isAlarmOff = false;
-
-        _audioSource.Play();
-
-        var wait = new WaitForSecondsRealtime(_timeOfWite);
-
-        while (!_isAlarmOff)
+        if (isAlarm)
         {
-            if ((_audioSource.volume != _maxVolume) && _isRogueItHome)
-            {
-                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _maxVolume, _speedGrowVolume);
-            }
-            else if ((_audioSource.volume != _minVolume) && !_isRogueItHome)
-            {
-                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _minVolume, _speedGrowVolume);
-            }
-            else if ((_audioSource.volume == _minVolume) && !_isRogueItHome)
-            {
-                _isAlarmOff = true;
-            }
+            _coroutine = StartCoroutine(TurnAlarm(_maxVolume));
+        _audioSource.Play();
+        }
+        else
+        {
+            _coroutine = StartCoroutine(TurnAlarm(_minVolume));
+        }
+    }
 
-            yield return wait;
+    private IEnumerator TurnAlarm(float targetVolume)
+    {
+        _isAlarm = true;
+
+        while (_isAlarm)
+        {
+            if (_audioSource.volume != targetVolume)
+                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, targetVolume, _speedGrowVolume * Time.deltaTime);
+            else
+                _isAlarm = false;
+
+            yield return null;
         }
 
-        _audioSource.Stop();
-
-        yield break;
+        if (_audioSource.volume == _minVolume)
+            _audioSource.Stop();
     }
 }
