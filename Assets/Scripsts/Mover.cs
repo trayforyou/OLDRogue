@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Mover : MonoBehaviour
 {
-    [SerializeField] float _speed = 5f;
+    [SerializeField] private float _speed = 5f;
 
     private string _vertical = "Vertical";
     private string _horizontal = "Horizontal";

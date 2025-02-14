@@ -10,10 +10,8 @@ public class AlarmSystem : MonoBehaviour
 
     private AudioSource _audioSource;
     private Detector _detector;
-    private Coroutine _coroutine;
     private float _minVolume;
     private float _maxVolume;
-    private bool _isAlarm;
 
     private void Awake()
     {
@@ -22,45 +20,62 @@ public class AlarmSystem : MonoBehaviour
         _minVolume = 0f;
         _maxVolume = 1f;
         _audioSource.volume = _minVolume;
-        _detector.RogueChangedState += ChangeAlarmState;
+        _detector.RogueHasLeft += ChangeAlarmDown;
+        _detector.RogueCome += ChangeAlarmUp;
     }
 
     private void OnDisable()
     {
-        _detector.RogueChangedState -= ChangeAlarmState;
+        _detector.RogueHasLeft -= ChangeAlarmDown;
+        _detector.RogueCome -= ChangeAlarmUp;
     }
 
-    private void ChangeAlarmState(bool isAlarm)
+    private void ChangeAlarmUp()
     {
-        if (_coroutine != null)
-            StopCoroutine(_coroutine);
+        if(_audioSource.volume == _minVolume)
+            _audioSource.Play();
 
-        if (isAlarm)
-        {
-            _coroutine = StartCoroutine(TurnAlarm(_maxVolume));
-        _audioSource.Play();
-        }
-        else
-        {
-            _coroutine = StartCoroutine(TurnAlarm(_minVolume));
-        }
+        StopAllCoroutines();
+
+        StartCoroutine(TurnAlarmUp());
     }
 
-    private IEnumerator TurnAlarm(float targetVolume)
+    private void ChangeAlarmDown()
     {
-        _isAlarm = true;
+        StopAllCoroutines();
 
-        while (_isAlarm)
+        StartCoroutine(TurnAlarmDown());
+    }
+
+    private IEnumerator TurnAlarmUp()
+    {
+        bool isRun = true;
+
+        while (isRun)
         {
-            if (_audioSource.volume != targetVolume)
-                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, targetVolume, _speedGrowVolume * Time.deltaTime);
+            if (_audioSource.volume != _maxVolume)
+                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _maxVolume, _speedGrowVolume * Time.deltaTime);
             else
-                _isAlarm = false;
+                isRun = false;
+
+            yield return null;
+        }
+    }
+
+    private IEnumerator TurnAlarmDown()
+    {
+        bool isRun = true;
+
+        while (isRun)
+        {
+            if (_audioSource.volume != _minVolume)
+                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _minVolume, _speedGrowVolume * Time.deltaTime);
+            else
+                isRun = false;
 
             yield return null;
         }
 
-        if (_audioSource.volume == _minVolume)
-            _audioSource.Stop();
+        _audioSource.Stop();
     }
 }
