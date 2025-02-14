@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Detector : MonoBehaviour
@@ -9,20 +7,20 @@ public class Detector : MonoBehaviour
 
     public event Action<bool> RogueChangedState;
 
-    private void OnTriggerEnter(Collider other)
+    private void Awake()
     {
-        if (other.gameObject.TryGetComponent<Rogue>(out _))
-        {
-            _isRogueItHome = true;
-            RogueChangedState?.Invoke(_isRogueItHome);
-        }        
+        _isRogueItHome = false;
     }
 
-    private void OnTriggerExit(Collider other)
+    private void OnTriggerEnter(Collider other) => ChangeHomeState(other);
+
+    private void OnTriggerExit(Collider other) => ChangeHomeState(other);
+
+    private void ChangeHomeState(Collider collider)
     {
-        if (other.gameObject.TryGetComponent<Rogue>(out _))
+        if (collider.gameObject.TryGetComponent<Rogue>(out _))
         {
-            _isRogueItHome = false;
+            _isRogueItHome = !_isRogueItHome;
             RogueChangedState?.Invoke(_isRogueItHome);
         }
     }
