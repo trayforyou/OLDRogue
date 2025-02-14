@@ -25,12 +25,13 @@ public class AlarmSystem : MonoBehaviour
         _detector.RogueChangedState += ChangeAlarmState;
     }
 
-    private void OnDisable() =>
+    private void OnDisable()
+    {
         _detector.RogueChangedState -= ChangeAlarmState;
+    }
 
     private void ChangeAlarmState(bool isAlarm)
     {
-
         if (_coroutine != null)
             StopCoroutine(_coroutine);
 
