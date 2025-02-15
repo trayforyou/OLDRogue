@@ -3,13 +3,13 @@ using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
 [RequireComponent(typeof(Detector))]
-
 public class AlarmSystem : MonoBehaviour
 {
     [SerializeField, Range(0f, 1f)] private float _speedGrowVolume = 1f;
 
     private AudioSource _audioSource;
     private Detector _detector;
+    private Coroutine _coroutine;
     private float _minVolume;
     private float _maxVolume;
 
@@ -30,52 +30,38 @@ public class AlarmSystem : MonoBehaviour
         _detector.RogueCome -= ChangeAlarmUp;
     }
 
-    private void ChangeAlarmUp()
+    private void ChangeAlarmUp() =>
+        ActivateAlarm(_maxVolume);
+
+    private void ChangeAlarmDown() =>
+        ActivateAlarm(_minVolume);
+
+    private void ActivateAlarm(float volume)
     {
-        if(_audioSource.volume == _minVolume)
+        if (!_audioSource.isPlaying)
             _audioSource.Play();
 
-        StopAllCoroutines();
+        if (_coroutine != null)
+            StopCoroutine(_coroutine);
 
-        StartCoroutine(TurnAlarmUp());
+        _coroutine = StartCoroutine(ChangeVolume(volume));
     }
 
-    private void ChangeAlarmDown()
-    {
-        StopAllCoroutines();
-
-        StartCoroutine(TurnAlarmDown());
-    }
-
-    private IEnumerator TurnAlarmUp()
+    private IEnumerator ChangeVolume(float targetVolume)
     {
         bool isRun = true;
 
         while (isRun)
         {
-            if (_audioSource.volume != _maxVolume)
-                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _maxVolume, _speedGrowVolume * Time.deltaTime);
-            else
-                isRun = false;
-
-            yield return null;
-        }
-    }
-
-    private IEnumerator TurnAlarmDown()
-    {
-        bool isRun = true;
-
-        while (isRun)
-        {
-            if (_audioSource.volume != _minVolume)
-                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _minVolume, _speedGrowVolume * Time.deltaTime);
+            if (_audioSource.volume != targetVolume)
+                _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, targetVolume, _speedGrowVolume * Time.deltaTime);
             else
                 isRun = false;
 
             yield return null;
         }
 
-        _audioSource.Stop();
+        if (_audioSource.volume == _minVolume)
+            _audioSource.Stop();
     }
 }
